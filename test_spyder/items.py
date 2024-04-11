@@ -4,9 +4,17 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
+from scrapy import Item
+from scrapy import Field
 
 
-class TestSpyderItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class QuoteItem(Item):
+    quote = Field()
+    author = Field()
+    tags = Field()
+
+class AuthorItem(Item):
+    fullname = Field()
+    born_date = Field()
+    born_location = Field()
+    description = Field()

@@ -7,7 +7,7 @@ from scrapy.crawler import CrawlerProcess
 class QuoteItem(Item):
     quote = Field()
     author = Field()
-    description = Field()
+    tags = Field()
 
 class AuthorItem(Item):
     fullname = Field()
@@ -17,12 +17,12 @@ class AuthorItem(Item):
 
 class DataPipeLine:
     quotes = []
-    author = []
+    authors = []
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
         if 'fullname' in adapter.keys():
-            self.author.append(dict(adapter))
+            self.authors.append(dict(adapter))
         elif 'quote' in adapter.keys():
             self.quotes.append(dict(adapter))
         else:
@@ -32,7 +32,7 @@ class DataPipeLine:
         with open('quotes.json','w',encoding ='utf-8') as f:
             json.dump(self.quotes, f, ensure_ascii=False, indent=4)
         with open('authors.json','w',encoding ='utf-8') as f:
-            json.dump(self.author, f, ensure_ascii=False, indent=4)
+            json.dump(self.authors, f, ensure_ascii=False, indent=4)
 
 class QuotesSpider(scrapy.Spider):
     name = 'get_quotes'
@@ -45,9 +45,8 @@ class QuotesSpider(scrapy.Spider):
             quote = q.xpath("span[@class='text']/text()").get().strip()
             author = q.xpath("span/small[@class='author']/text()").get().strip()
             tags = q.xpath("div[@class = 'tags']/a/text()").extract()
-
             yield QuoteItem(quote = quote, author = author, tags = tags)
-            yield response.follow(url = self.start_urls[0] + quote.xpath("span/a/@href").get(), callback=self.parse_author)
+            yield response.follow(url = self.start_urls[0] + q.xpath("span/a/@href").get(), callback=self.parse_author)
             #print(tags)
 
         next_link = response.xpath("/html//li[@class = 'next']/a/@href").get()
@@ -58,10 +57,11 @@ class QuotesSpider(scrapy.Spider):
     def parse_author(cls, response, **kwargs):
         a = response.xpath("/html//div[@class = 'author-details']")
         fullname = a.xpath("h3[@class='author-title']/text()").get().strip()
-        born_date = a.xpath("h3[@class='author-born-date']/text()").get().strip()
-        born_location = a.xpath("h3[@class='author-born-location']/text()").get().strip()
-        description = a.xpath("h3[@class='author-description']/text()").get().strip()
-        print(fullname, '\t' ,born_date, born_location, '\n' , description)
+        born_date = a.xpath("p/span[@class='author-born-date']/text()").get().strip()
+        born_location = a.xpath("p/span[@class='author-born-location']/text()").get().strip()
+        description = a.xpath("div[@class='author-description']/text()").get().strip()
+        #print(fullname, '\t' ,born_date, born_location, '\n' , description)
+        yield AuthorItem(fullname=fullname, born_date = born_date, born_location = born_location, description = description)
 
 if __name__ == "__main__":
     process = CrawlerProcess()
